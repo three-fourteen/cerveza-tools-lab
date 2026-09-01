@@ -35,6 +35,12 @@ export default function App() {
     return () => { active = false; unregister() }
   }, [])
 
+  useEffect(() => {
+    const syncExternalBrewUpdate = () => { void useBrewStore.persist.rehydrate() }
+    window.addEventListener('current-brew-updated', syncExternalBrewUpdate)
+    return () => window.removeEventListener('current-brew-updated', syncExternalBrewUpdate)
+  }, [])
+
   return <main className="workspace">
     <header>
       <div><p className="eyebrow">WEBMCP BREWING WORKSPACE</p><h1>Cerveza Tools Lab</h1></div>

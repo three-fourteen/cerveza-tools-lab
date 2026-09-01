@@ -33,6 +33,10 @@ async function execute(action: () => unknown) {
   try { return response(true, action()) } catch (error) { return response(false, { code: 'INVALID_INPUT', message: error instanceof Error ? error.message : 'Invalid input.' }) }
 }
 
+function notifyBrewUpdate() {
+  window.dispatchEvent(new Event('current-brew-updated'))
+}
+
 export async function registerLabTools(modelContext?: ModelContext) {
   const context = modelContext ?? (document as Document & { modelContext?: ModelContext }).modelContext
   if (!context) return { supported: false, registered: [] as string[], unregister: () => {} }
@@ -40,8 +44,8 @@ export async function registerLabTools(modelContext?: ModelContext) {
   const tools: Tool[] = [
     { name: 'get_current_brew', description: 'Read the current shared brew as structured data.', inputSchema: { type: 'object' }, execute: () => execute(() => useBrewStore.getState().brew) },
     { name: 'get_current_brew_metrics', description: 'Read deterministic metrics for the current shared brew.', inputSchema: { type: 'object' }, execute: () => execute(() => calculateBrewMetrics(useBrewStore.getState().brew)) },
-    { name: 'update_current_brew', description: 'Apply a whitelisted patch to the current shared brew.', inputSchema: { type: 'object', required: ['patch'] }, execute: (input) => execute(() => { const data = object(input); const patch = numericPatch(object(data.patch), editableFields) as EditableBrewPatch; useBrewStore.getState().updateBrew(patch); return { changedFields: Object.keys(patch), brew: useBrewStore.getState().brew } }) },
-    { name: 'update_hop_addition', description: 'Update exactly one hop addition without changing other hops.', inputSchema: { type: 'object', required: ['id'] }, execute: (input) => execute(() => { const data = object(input); if (typeof data.id !== 'string') throw new Error('id must be a string.'); const { id, ...patchInput } = data; const patch = numericPatch(patchInput, hopFields) as EditableHopPatch; useBrewStore.getState().updateHop(id, patch); return { changedFields: Object.keys(patch), brew: useBrewStore.getState().brew } }) },
+    { name: 'update_current_brew', description: 'Apply a whitelisted patch to the current shared brew.', inputSchema: { type: 'object', required: ['patch'] }, execute: (input) => execute(() => { const data = object(input); const patch = numericPatch(object(data.patch), editableFields) as EditableBrewPatch; useBrewStore.getState().updateBrew(patch); notifyBrewUpdate(); return { changedFields: Object.keys(patch), brew: useBrewStore.getState().brew } }) },
+    { name: 'update_hop_addition', description: 'Update exactly one hop addition without changing other hops.', inputSchema: { type: 'object', required: ['id'] }, execute: (input) => execute(() => { const data = object(input); if (typeof data.id !== 'string') throw new Error('id must be a string.'); const { id, ...patchInput } = data; const patch = numericPatch(patchInput, hopFields) as EditableHopPatch; useBrewStore.getState().updateHop(id, patch); notifyBrewUpdate(); return { changedFields: Object.keys(patch), brew: useBrewStore.getState().brew } }) },
   ]
   const controller = new AbortController()
   await Promise.all(tools.map((tool) => context.registerTool(tool, { signal: controller.signal })))

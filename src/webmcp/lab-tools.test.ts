@@ -10,10 +10,13 @@ describe('registerLabTools', () => {
     const registration = await registerLabTools({ registerTool: (tool) => { tools.push(tool) } })
     const update = tools.find((tool) => tool.name === 'update_current_brew')!
 
+    let notified = false
+    window.addEventListener('current-brew-updated', () => { notified = true }, { once: true })
     const result = await update.execute({ patch: { expectedFinalGravity: 1.014 }, reason: 'User changed it.' })
 
     expect(registration.supported).toBe(true)
     expect(useBrewStore.getState().brew.expectedFinalGravity).toBe(1.014)
     expect(JSON.parse(result.content[0].text).ok).toBe(true)
+    expect(notified).toBe(true)
   })
 })
