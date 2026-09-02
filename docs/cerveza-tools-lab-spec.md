@@ -254,6 +254,7 @@ MVP:
 get_current_brew
 update_current_brew
 get_current_brew_metrics
+set_temperature_unit
 ```
 
 Optional:

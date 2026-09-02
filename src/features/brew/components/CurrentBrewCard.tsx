@@ -1,14 +1,18 @@
 import type { CurrentBrew } from '../../../domain/brew'
 import type { BrewMetrics } from '../../../domain/metrics'
+import type { TemperatureUnit } from '../../../domain/temperature'
 import type { BrewStore, MutationResult } from '../../../state/brew-store'
 import { NumberField } from '../../../ui/NumberField'
 import { cardClasses } from './styles'
+import { TemperatureFields } from './TemperatureFields'
 
 interface CurrentBrewCardProps {
   brew: CurrentBrew
   metrics: BrewMetrics
+  temperatureUnit: TemperatureUnit
   syncVersion: number
   updateBrew: BrewStore['updateBrew']
+  setTemperatureUnit: BrewStore['setTemperatureUnit']
 }
 
 interface MetricProps {
@@ -36,8 +40,10 @@ function Metric({ label, value, unit }: MetricProps) {
 export function CurrentBrewCard({
   brew,
   metrics,
+  temperatureUnit,
   syncVersion,
   updateBrew,
+  setTemperatureUnit,
 }: CurrentBrewCardProps) {
   return (
     <section className={cardClasses} aria-labelledby="current-brew-title">
@@ -52,7 +58,7 @@ export function CurrentBrewCard({
           Saved locally
         </span>
       </div>
-      <div className="mt-5.5 grid grid-cols-5 gap-3.5 max-md:grid-cols-2">
+      <div className="mt-5.5 grid grid-cols-4 gap-3.5 max-md:grid-cols-2">
         <NumberField
           label="Batch volume (L)"
           value={brew.batchVolumeLiters}
@@ -71,16 +77,6 @@ export function CurrentBrewCard({
           step={0.001}
           optional
           onCommit={(value) => updateBrew({ targetOriginalGravity: value })}
-        />
-        <NumberField
-          label="Hydrometer reading"
-          value={brew.measuredOriginalGravity}
-          syncVersion={syncVersion}
-          min={0.001}
-          max={2}
-          step={0.001}
-          optional
-          onCommit={(value) => updateBrew({ measuredOriginalGravity: value })}
         />
         <NumberField
           label="Current OG"
@@ -103,6 +99,14 @@ export function CurrentBrewCard({
           onCommit={(value) => updateBrew({ expectedFinalGravity: value })}
         />
       </div>
+      <TemperatureFields
+        brew={brew}
+        correctedReading={metrics.correctedOriginalGravity}
+        temperatureUnit={temperatureUnit}
+        syncVersion={syncVersion}
+        onUpdateBrew={updateBrew}
+        onTemperatureUnitChange={setTemperatureUnit}
+      />
       <div
         className="mt-5.5 grid grid-cols-3 gap-3.5 max-sm:grid-cols-1"
         aria-label="Calculated metrics"

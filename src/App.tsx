@@ -11,11 +11,13 @@ import './app.css'
 
 export default function App() {
   const brew = useBrewStore((state) => state.brew)
+  const temperatureUnit = useBrewStore((state) => state.temperatureUnit)
   const syncVersion = useBrewStore((state) => state.syncVersion)
   const lastChange = useBrewStore((state) => state.lastChange)
   const updateBrew = useBrewStore((state) => state.updateBrew)
   const updateHop = useBrewStore((state) => state.updateHop)
   const loadPreset = useBrewStore((state) => state.loadPreset)
+  const setTemperatureUnit = useBrewStore((state) => state.setTemperatureUnit)
   const clearLastChange = useBrewStore((state) => state.clearLastChange)
   const [selectedPreset, setSelectedPreset] = useState('american-ipa')
   const [agentToolsAvailable, setAgentToolsAvailable] = useState(false)
@@ -72,8 +74,10 @@ export default function App() {
         <CurrentBrewCard
           brew={brew}
           metrics={metrics}
+          temperatureUnit={temperatureUnit}
           syncVersion={syncVersion}
           updateBrew={updateBrew}
+          setTemperatureUnit={setTemperatureUnit}
         />
         <HopSchedule hops={brew.hops} syncVersion={syncVersion} updateHop={updateHop} />
       </div>

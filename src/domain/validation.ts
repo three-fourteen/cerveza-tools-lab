@@ -1,4 +1,5 @@
 import type { CurrentBrew, HopAddition } from './brew'
+import { celsiusTemperatureRange } from './temperature'
 
 export const editableBrewFields = [
   'name',
@@ -6,6 +7,8 @@ export const editableBrewFields = [
   'targetOriginalGravity',
   'originalGravity',
   'measuredOriginalGravity',
+  'gravitySampleTemperatureC',
+  'hydrometerCalibrationTemperatureC',
   'expectedFinalGravity',
 ] as const satisfies readonly (keyof CurrentBrew)[]
 
@@ -109,8 +112,16 @@ export function parseCurrentBrew(value: unknown): CurrentBrew | undefined {
     || !isOptionalNumberGreaterThan(value.targetOriginalGravity, 0, 2)
     || !isOptionalNumberGreaterThan(value.originalGravity, 0, 2)
     || !isOptionalNumberGreaterThan(value.measuredOriginalGravity, 0, 2)
-    || !isOptionalNumberBetween(value.gravitySampleTemperatureC, -273.15, 200)
-    || !isOptionalNumberBetween(value.hydrometerCalibrationTemperatureC, -273.15, 200)
+    || !isOptionalNumberBetween(
+      value.gravitySampleTemperatureC,
+      celsiusTemperatureRange.minimum,
+      celsiusTemperatureRange.maximum,
+    )
+    || !isOptionalNumberBetween(
+      value.hydrometerCalibrationTemperatureC,
+      celsiusTemperatureRange.minimum,
+      celsiusTemperatureRange.maximum,
+    )
     || !isOptionalNumberGreaterThan(value.expectedFinalGravity, 0, 2)
     || !isOptionalNumberBetween(value.mashTemperatureC, 0, 100)
     || !isOptionalNumberBetween(value.boilMinutes, 0, 10_000)
