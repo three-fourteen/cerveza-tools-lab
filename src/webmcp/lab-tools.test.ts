@@ -146,4 +146,41 @@ describe('registerLabTools', () => {
     const retry = await register()
     expect(retry.registered).toHaveLength(5)
   })
+
+  it('lets a newer registration replace an overlapping in-flight registration', async () => {
+    const firstResolvers: Array<() => void> = []
+    const firstSignals: AbortSignal[] = []
+    const secondResolvers: Array<() => void> = []
+    const secondSignals: AbortSignal[] = []
+
+    const firstRegistration = registerLabTools({
+      registerTool: (_tool, options) => new Promise<void>((resolve) => {
+        firstSignals.push(options?.signal as AbortSignal)
+        firstResolvers.push(resolve)
+      }),
+    })
+    const secondRegistration = registerLabTools({
+      registerTool: (_tool, options) => new Promise<void>((resolve) => {
+        secondSignals.push(options?.signal as AbortSignal)
+        secondResolvers.push(resolve)
+      }),
+    })
+
+    expect(firstSignals).toHaveLength(5)
+    expect(firstSignals.every((signal) => signal.aborted)).toBe(true)
+    expect(secondSignals).toHaveLength(5)
+    expect(secondSignals.every((signal) => signal.aborted)).toBe(false)
+
+    firstResolvers.forEach((resolve) => resolve())
+    const staleRegistration = await firstRegistration
+    staleRegistration.unregister()
+    expect(secondSignals.every((signal) => signal.aborted)).toBe(false)
+
+    secondResolvers.forEach((resolve) => resolve())
+    const activeRegistration = await secondRegistration
+    expect(activeRegistration.registered).toHaveLength(5)
+
+    activeRegistration.unregister()
+    expect(secondSignals.every((signal) => signal.aborted)).toBe(true)
+  })
 })

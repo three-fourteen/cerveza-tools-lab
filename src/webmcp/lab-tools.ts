@@ -206,7 +206,7 @@ export async function registerLabTools(modelContext?: ModelContext) {
   const context = modelContext ?? (document as Document & { modelContext?: ModelContext }).modelContext
   if (!context) return { supported: false, registered: [] as string[], unregister: () => {} }
   if (registrationController) {
-    return { supported: true, registered: [] as string[], unregister: () => {} }
+    abortRegistration(registrationController)
   }
   const tools: Tool[] = [
     {
