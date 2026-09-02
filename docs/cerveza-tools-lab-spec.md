@@ -152,6 +152,7 @@ type CurrentBrew = {
   batchVolumeLiters: number;
 
   targetOriginalGravity?: Gravity;
+  originalGravity?: Gravity;
   measuredOriginalGravity?: Gravity;
   gravitySampleTemperatureC?: number;
   hydrometerCalibrationTemperatureC?: number;
@@ -167,6 +168,8 @@ type CurrentBrew = {
   beerTemperatureC?: number;
 };
 ```
+
+`originalGravity` is the canonical OG used by downstream ABV and IBU calculations. `measuredOriginalGravity` remains the raw hydrometer reading and may be temperature-corrected before explicitly applying the result as canonical OG.
 
 Only include fields that are used by the MVP interactions.
 
@@ -313,9 +316,9 @@ Preferred input:
 ```json
 {
   "patch": {
-    "measuredOriginalGravity": 1.055
+    "originalGravity": 1.055
   },
-  "reason": "User asked to use the corrected measurement."
+  "reason": "User asked to apply the corrected measurement as canonical OG."
 }
 ```
 

@@ -4,33 +4,66 @@ import {
   createAmericanIpa,
   createBrewFromPreset,
   type CurrentBrew,
-  type HopAddition,
 } from '../domain/brew'
+import {
+  parseCurrentBrew,
+  validateBrewPatch,
+  validateHopPatch,
+  type EditableBrewPatch,
+  type EditableHopPatch,
+} from '../domain/validation'
 
-export type EditableBrewPatch = Partial<Pick<
-  CurrentBrew,
-  | 'name'
-  | 'batchVolumeLiters'
-  | 'targetOriginalGravity'
-  | 'measuredOriginalGravity'
-  | 'gravitySampleTemperatureC'
-  | 'hydrometerCalibrationTemperatureC'
-  | 'expectedFinalGravity'
-  | 'mashTemperatureC'
-  | 'boilMinutes'
-  | 'targetCarbonationVolumes'
-  | 'beerTemperatureC'
->>
+export type { EditableBrewPatch, EditableHopPatch } from '../domain/validation'
 
-export type EditableHopPatch = Partial<Omit<HopAddition, 'id'>>
+export type ChangeSource = 'human' | 'agent'
+
+export type BrewChange = {
+  source: ChangeSource
+  values: Array<{ field: string; previous: unknown; next: unknown }>
+  reason?: string
+  timestamp: number
+}
+
+export type MutationResult =
+  | { ok: true }
+  | { ok: false; code: 'INVALID_INPUT' | 'NOT_FOUND'; message: string }
+
+type MutationOptions = {
+  source?: ChangeSource
+  reason?: string
+}
+
+function createChange(
+  patch: object,
+  previousValue: (field: string) => unknown,
+  options: MutationOptions,
+  fieldPath: (field: string) => string = (field) => field,
+): BrewChange {
+  const entries = Object.entries(patch)
+  return {
+    source: options.source ?? 'human',
+    values: entries.map(([field, next]) => ({
+      field: fieldPath(field),
+      previous: previousValue(field),
+      next,
+    })),
+    ...(options.reason && { reason: options.reason }),
+    timestamp: Date.now(),
+  }
+}
 
 export type BrewStore = {
   brew: CurrentBrew
+  syncVersion: number
+  lastChange?: BrewChange
   loadPreset: (presetId: string) => void
-  updateBrew: (patch: EditableBrewPatch) => void
-  addHop: (hop: HopAddition) => void
-  updateHop: (id: string, patch: EditableHopPatch) => void
-  removeHop: (id: string) => void
+  updateBrew: (patch: EditableBrewPatch, options?: MutationOptions) => MutationResult
+  updateHop: (
+    id: string,
+    patch: EditableHopPatch,
+    options?: MutationOptions,
+  ) => MutationResult
+  clearLastChange: () => void
 }
 
 const memoryStorage = new Map<string, string>()
@@ -44,25 +77,72 @@ const fallbackStorage: StateStorage = {
 export function createBrewStore(storage: StateStorage = fallbackStorage) {
   return create<BrewStore>()(
     persist(
-    (set) => ({
-      brew: createAmericanIpa(),
-      loadPreset: (presetId) => set({ brew: createBrewFromPreset(presetId) }),
-      updateBrew: (patch) => set((state) => ({ brew: { ...state.brew, ...patch } })),
-      addHop: (hop) => set((state) => ({ brew: { ...state.brew, hops: [...state.brew.hops, { ...hop }] } })),
-      updateHop: (id, patch) => set((state) => ({
-        brew: {
-          ...state.brew,
-          hops: state.brew.hops.map((hop) => hop.id === id ? { ...hop, ...patch } : hop),
+      (set, get) => ({
+        brew: createAmericanIpa(),
+        syncVersion: 0,
+        loadPreset: (presetId) => set((state) => ({
+          brew: createBrewFromPreset(presetId),
+          syncVersion: state.syncVersion + 1,
+          lastChange: undefined,
+        })),
+        updateBrew: (patch, options = {}) => {
+          const currentBrew = get().brew
+          const message = validateBrewPatch(currentBrew, patch)
+          if (message) return { ok: false, code: 'INVALID_INPUT', message }
+
+          set((state) => ({
+            brew: { ...state.brew, ...patch },
+            syncVersion: state.syncVersion + (options.source === 'agent' ? 1 : 0),
+            lastChange: createChange(
+              patch,
+              (field) => currentBrew[field as keyof CurrentBrew],
+              options,
+            ),
+          }))
+          return { ok: true }
         },
-      })),
-      removeHop: (id) => set((state) => ({
-        brew: { ...state.brew, hops: state.brew.hops.filter((hop) => hop.id !== id) },
-      })),
-    }),
+        updateHop: (id, patch, options = {}) => {
+          const hop = get().brew.hops.find((candidate) => candidate.id === id)
+          if (!hop) {
+            return { ok: false, code: 'NOT_FOUND', message: `Unknown hop addition: ${id}.` }
+          }
+
+          const message = validateHopPatch(hop, patch)
+          if (message) return { ok: false, code: 'INVALID_INPUT', message }
+
+          set((state) => ({
+            brew: {
+              ...state.brew,
+              hops: state.brew.hops.map((candidate) => (
+                candidate.id === id ? { ...candidate, ...patch } : candidate
+              )),
+            },
+            syncVersion: state.syncVersion + (options.source === 'agent' ? 1 : 0),
+            lastChange: createChange(
+              patch,
+              (field) => hop[field as keyof typeof hop],
+              options,
+              (field) => `hops.${id}.${field}`,
+            ),
+          }))
+          return { ok: true }
+        },
+        clearLastChange: () => set({ lastChange: undefined }),
+      }),
       {
         name: 'cerveza-tools-lab-current-brew',
         partialize: (state) => ({ brew: state.brew }),
         storage: createJSONStorage(() => storage),
+        merge: (persistedState, currentState) => {
+          const persistedRecord = persistedState !== null
+            && typeof persistedState === 'object'
+            ? persistedState as Record<string, unknown>
+            : undefined
+          return {
+            ...currentState,
+            brew: parseCurrentBrew(persistedRecord?.brew) ?? currentState.brew,
+          }
+        },
       },
     ),
   )
