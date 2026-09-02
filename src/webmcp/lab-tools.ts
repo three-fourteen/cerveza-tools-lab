@@ -1,5 +1,9 @@
 import { calculateBrewMetrics } from '../domain/metrics'
 import {
+  parseTemperatureUnit,
+  temperatureUnits,
+} from '../domain/temperature'
+import {
   agentEditableBrewFields,
   editableHopFields,
   type EditableBrewPatch,
@@ -32,6 +36,7 @@ const brewFieldSet = new Set<string>(agentEditableBrewFields)
 const hopFieldSet = new Set<string>(editableHopFields)
 const updateBrewInputFields = new Set(['patch', 'reason'])
 const updateHopInputFields = new Set(['id', 'reason', ...editableHopFields])
+const setTemperatureUnitInputFields = new Set(['unit'])
 
 const gravitySchema = { type: 'number', exclusiveMinimum: 0, maximum: 2 }
 const brewPatchProperties = {
@@ -78,6 +83,15 @@ const updateHopInputSchema = {
   },
   required: ['id'],
   anyOf: editableHopFields.map((field) => ({ required: [field] })),
+  additionalProperties: false,
+}
+
+const setTemperatureUnitInputSchema = {
+  type: 'object',
+  properties: {
+    unit: { type: 'string', enum: temperatureUnits },
+  },
+  required: ['unit'],
   additionalProperties: false,
 }
 
@@ -173,6 +187,16 @@ function updateHopAddition(input: unknown) {
   return mutationOutput(Object.keys(hopPatch))
 }
 
+function setTemperatureUnit(input: unknown) {
+  const data = object(input)
+  assertOnlyFields(data, setTemperatureUnitInputFields)
+  const unit = parseTemperatureUnit(data.unit)
+  if (!unit) throw new ToolError('INVALID_INPUT', 'unit must be celsius or fahrenheit.')
+
+  useBrewStore.getState().setTemperatureUnit(unit, { source: 'agent' })
+  return { temperatureUnit: unit }
+}
+
 function abortRegistration(controller: AbortController) {
   controller.abort()
   if (registrationController === controller) registrationController = undefined
@@ -208,6 +232,12 @@ export async function registerLabTools(modelContext?: ModelContext) {
       description: 'Update exactly one existing hop addition.',
       inputSchema: updateHopInputSchema,
       execute: (input) => execute(() => updateHopAddition(input)),
+    },
+    {
+      name: 'set_temperature_unit',
+      description: 'Change temperature display units without changing stored Celsius values.',
+      inputSchema: setTemperatureUnitInputSchema,
+      execute: (input) => execute(() => setTemperatureUnit(input)),
     },
   ]
   const controller = new AbortController()

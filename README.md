@@ -32,6 +32,7 @@ The application remains useful without WebMCP. When the browser supports it, it 
 | `get_current_brew_metrics` | Returns deterministic calculated metrics when inputs are present. |
 | `update_current_brew` | Applies a validated, whitelisted patch to Current Brew. |
 | `update_hop_addition` | Updates one named hop addition without replacing the others. |
+| `set_temperature_unit` | Changes the UI between °C and °F while keeping stored values in °C. |
 
 ### Calculator tools from `cerveza-tools`
 

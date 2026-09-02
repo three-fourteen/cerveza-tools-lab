@@ -48,19 +48,19 @@ const presets: BrewPreset[] = [
   },
   {
     id: 'czech-pilsner', name: 'Czech Pilsner',
-    brew: { id: 'czech-pilsner', name: 'Czech Pilsner', batchVolumeLiters: 20, targetOriginalGravity: 1.048, originalGravity: 1.048, expectedFinalGravity: 1.01, mashTemperatureC: 66, boilMinutes: 90, hops: [{ id: 'saaz-60', name: 'Saaz', alphaAcidPercent: 3.5, amountGrams: 45, boilMinutes: 60 }] },
+    brew: { id: 'czech-pilsner', name: 'Czech Pilsner', batchVolumeLiters: 20, targetOriginalGravity: 1.048, originalGravity: 1.048, hydrometerCalibrationTemperatureC: 20, expectedFinalGravity: 1.01, mashTemperatureC: 66, boilMinutes: 90, hops: [{ id: 'saaz-60', name: 'Saaz', alphaAcidPercent: 3.5, amountGrams: 45, boilMinutes: 60 }] },
   },
   {
     id: 'dry-stout', name: 'Dry Stout',
-    brew: { id: 'dry-stout', name: 'Dry Stout', batchVolumeLiters: 20, targetOriginalGravity: 1.044, originalGravity: 1.044, expectedFinalGravity: 1.01, mashTemperatureC: 67, boilMinutes: 60, hops: [{ id: 'east-kent-golding-60', name: 'East Kent Golding', alphaAcidPercent: 5, amountGrams: 35, boilMinutes: 60 }] },
+    brew: { id: 'dry-stout', name: 'Dry Stout', batchVolumeLiters: 20, targetOriginalGravity: 1.044, originalGravity: 1.044, hydrometerCalibrationTemperatureC: 20, expectedFinalGravity: 1.01, mashTemperatureC: 67, boilMinutes: 60, hops: [{ id: 'east-kent-golding-60', name: 'East Kent Golding', alphaAcidPercent: 5, amountGrams: 35, boilMinutes: 60 }] },
   },
   {
     id: 'belgian-wit', name: 'Belgian Wit',
-    brew: { id: 'belgian-wit', name: 'Belgian Wit', batchVolumeLiters: 20, targetOriginalGravity: 1.046, originalGravity: 1.046, expectedFinalGravity: 1.009, mashTemperatureC: 66, boilMinutes: 60, hops: [{ id: 'hallertau-60', name: 'Hallertau Mittelfrüh', alphaAcidPercent: 4, amountGrams: 25, boilMinutes: 60 }] },
+    brew: { id: 'belgian-wit', name: 'Belgian Wit', batchVolumeLiters: 20, targetOriginalGravity: 1.046, originalGravity: 1.046, hydrometerCalibrationTemperatureC: 20, expectedFinalGravity: 1.009, mashTemperatureC: 66, boilMinutes: 60, hops: [{ id: 'hallertau-60', name: 'Hallertau Mittelfrüh', alphaAcidPercent: 4, amountGrams: 25, boilMinutes: 60 }] },
   },
   {
     id: 'helles', name: 'Munich Helles',
-    brew: { id: 'helles', name: 'Munich Helles', batchVolumeLiters: 20, targetOriginalGravity: 1.048, originalGravity: 1.048, expectedFinalGravity: 1.01, mashTemperatureC: 66, boilMinutes: 60, hops: [{ id: 'hallertau-60', name: 'Hallertau Mittelfrüh', alphaAcidPercent: 4, amountGrams: 28, boilMinutes: 60 }] },
+    brew: { id: 'helles', name: 'Munich Helles', batchVolumeLiters: 20, targetOriginalGravity: 1.048, originalGravity: 1.048, hydrometerCalibrationTemperatureC: 20, expectedFinalGravity: 1.01, mashTemperatureC: 66, boilMinutes: 60, hops: [{ id: 'hallertau-60', name: 'Hallertau Mittelfrüh', alphaAcidPercent: 4, amountGrams: 28, boilMinutes: 60 }] },
   },
 ]
 

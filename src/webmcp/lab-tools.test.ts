@@ -23,7 +23,12 @@ describe('registerLabTools', () => {
   beforeEach(() => {
     unregisterLabTools()
     tools = []
-    useBrewStore.setState({ brew: createAmericanIpa(), lastChange: undefined })
+    useBrewStore.setState({
+      brew: createAmericanIpa(),
+      temperatureUnit: 'celsius',
+      syncVersion: 0,
+      lastChange: undefined,
+    })
   })
 
   afterEach(() => {
@@ -100,6 +105,28 @@ describe('registerLabTools', () => {
     ])
   })
 
+  it('changes display units without converting stored temperatures', async () => {
+    await register()
+    const sampleTemperature = useBrewStore.getState().brew.gravitySampleTemperatureC
+
+    const result = readResult(await tool('set_temperature_unit').execute({
+      unit: 'fahrenheit',
+    }))
+
+    expect(result).toMatchObject({
+      ok: true,
+      data: { temperatureUnit: 'fahrenheit' },
+    })
+    expect(useBrewStore.getState()).toMatchObject({
+      temperatureUnit: 'fahrenheit',
+      brew: { gravitySampleTemperatureC: sampleTemperature },
+      lastChange: { source: 'agent' },
+    })
+    expect(readResult(await tool('set_temperature_unit').execute({
+      unit: 'kelvin',
+    }))).toMatchObject({ ok: false, error: { code: 'INVALID_INPUT' } })
+  })
+
   it('aborts in-flight registrations and permits a clean retry', async () => {
     const resolvers: Array<() => void> = []
     const signals: AbortSignal[] = []
@@ -111,12 +138,12 @@ describe('registerLabTools', () => {
     })
 
     unregisterLabTools()
-    expect(signals).toHaveLength(4)
+    expect(signals).toHaveLength(5)
     expect(signals.every((signal) => signal.aborted)).toBe(true)
     resolvers.forEach((resolve) => resolve())
     await registration
 
     const retry = await register()
-    expect(retry.registered).toHaveLength(4)
+    expect(retry.registered).toHaveLength(5)
   })
 })

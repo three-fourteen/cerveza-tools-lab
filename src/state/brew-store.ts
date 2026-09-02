@@ -12,6 +12,11 @@ import {
   type EditableBrewPatch,
   type EditableHopPatch,
 } from '../domain/validation'
+import {
+  defaultTemperatureUnit,
+  parseTemperatureUnit,
+  type TemperatureUnit,
+} from '../domain/temperature'
 
 export type { EditableBrewPatch, EditableHopPatch } from '../domain/validation'
 
@@ -54,6 +59,7 @@ function createChange(
 
 export type BrewStore = {
   brew: CurrentBrew
+  temperatureUnit: TemperatureUnit
   syncVersion: number
   lastChange?: BrewChange
   loadPreset: (presetId: string) => void
@@ -63,6 +69,7 @@ export type BrewStore = {
     patch: EditableHopPatch,
     options?: MutationOptions,
   ) => MutationResult
+  setTemperatureUnit: (unit: TemperatureUnit, options?: MutationOptions) => void
   clearLastChange: () => void
 }
 
@@ -79,6 +86,7 @@ export function createBrewStore(storage: StateStorage = fallbackStorage) {
     persist(
       (set, get) => ({
         brew: createAmericanIpa(),
+        temperatureUnit: defaultTemperatureUnit,
         syncVersion: 0,
         loadPreset: (presetId) => set((state) => ({
           brew: createBrewFromPreset(presetId),
@@ -127,11 +135,23 @@ export function createBrewStore(storage: StateStorage = fallbackStorage) {
           }))
           return { ok: true }
         },
+        setTemperatureUnit: (unit, options = {}) => set((state) => ({
+          temperatureUnit: unit,
+          syncVersion: state.syncVersion + 1,
+          lastChange: createChange(
+            { temperatureUnit: unit },
+            () => state.temperatureUnit,
+            options,
+          ),
+        })),
         clearLastChange: () => set({ lastChange: undefined }),
       }),
       {
         name: 'cerveza-tools-lab-current-brew',
-        partialize: (state) => ({ brew: state.brew }),
+        partialize: (state) => ({
+          brew: state.brew,
+          temperatureUnit: state.temperatureUnit,
+        }),
         storage: createJSONStorage(() => storage),
         merge: (persistedState, currentState) => {
           const persistedRecord = persistedState !== null
@@ -141,6 +161,8 @@ export function createBrewStore(storage: StateStorage = fallbackStorage) {
           return {
             ...currentState,
             brew: parseCurrentBrew(persistedRecord?.brew) ?? currentState.brew,
+            temperatureUnit: parseTemperatureUnit(persistedRecord?.temperatureUnit)
+              ?? currentState.temperatureUnit,
           }
         },
       },

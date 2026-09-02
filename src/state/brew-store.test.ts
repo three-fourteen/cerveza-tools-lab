@@ -18,7 +18,12 @@ describe('brew store', () => {
 
   beforeEach(() => {
     storage.values.clear()
-    store.setState({ brew: createAmericanIpa(), lastChange: undefined })
+    store.setState({
+      brew: createAmericanIpa(),
+      temperatureUnit: 'celsius',
+      syncVersion: 0,
+      lastChange: undefined,
+    })
   })
 
   it('updates a whitelisted brew field through the shared action', () => {
@@ -40,6 +45,15 @@ describe('brew store', () => {
     store.getState().updateBrew({ measuredOriginalGravity: 1.058 })
 
     expect(storage.getItem('cerveza-tools-lab-current-brew')).toContain('1.058')
+  })
+
+  it('persists temperature preference outside the brew model', () => {
+    store.getState().setTemperatureUnit('fahrenheit')
+
+    const restoredStore = createBrewStore(storage)
+
+    expect(restoredStore.getState().temperatureUnit).toBe('fahrenheit')
+    expect(restoredStore.getState().brew).not.toHaveProperty('temperatureUnit')
   })
 
   it('rejects invalid values without changing persisted state', () => {

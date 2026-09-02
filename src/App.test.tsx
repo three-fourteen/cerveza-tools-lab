@@ -7,7 +7,12 @@ import App from './App'
 
 describe('App', () => {
   beforeEach(() => {
-    useBrewStore.setState({ brew: createAmericanIpa(), lastChange: undefined })
+    useBrewStore.setState({
+      brew: createAmericanIpa(),
+      temperatureUnit: 'celsius',
+      syncVersion: 0,
+      lastChange: undefined,
+    })
   })
 
   afterEach(() => {
@@ -53,13 +58,14 @@ describe('App', () => {
       )
     })
 
-    expect(screen.getByRole('status').textContent).toContain(
+    const agentStatus = screen.getByText('Updated by agent').closest('[role="status"]')
+    expect(agentStatus?.textContent).toContain(
       'originalGravity: 1.05 → 1.058',
     )
-    expect(screen.getByRole('status').textContent).toContain('Applied corrected reading.')
+    expect(agentStatus?.textContent).toContain('Applied corrected reading.')
 
     fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
-    expect(screen.getByRole('status').textContent).toBe('')
+    expect(screen.queryByText('Updated by agent')).toBeNull()
   })
 
   it('renders a hop-free recipe as an empty schedule', () => {
@@ -70,5 +76,37 @@ describe('App', () => {
     render(<App />)
 
     expect(screen.getByText('No hop additions.')).toBeTruthy()
+  })
+
+  it('converts temperature display units while storing Celsius', () => {
+    render(<App />)
+
+    fireEvent.change(screen.getByLabelText('Temperature unit'), {
+      target: { value: 'fahrenheit' },
+    })
+
+    expect((screen.getByLabelText('Sample temperature (°F)') as HTMLInputElement).value)
+      .toBe('82.4')
+    expect((screen.getByLabelText('Hydrometer calibration (°F)') as HTMLInputElement).value)
+      .toBe('68')
+    expect(screen.getByText(/Temperatures shown in °F/)).toBeTruthy()
+
+    fireEvent.change(screen.getByLabelText('Sample temperature (°F)'), {
+      target: { value: '86' },
+    })
+    expect(useBrewStore.getState().brew.gravitySampleTemperatureC).toBe(30)
+  })
+
+  it('explicitly applies the corrected reading to canonical OG', () => {
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Apply to Current OG' }))
+
+    expect(useBrewStore.getState().brew.originalGravity).toBe(1.058)
+    expect((
+      screen.getByRole('button', { name: 'Corrected reading applied' }) as HTMLButtonElement
+    ).disabled).toBe(true)
+    expect(screen.getByText(/Applied to Current OG/)).toBeTruthy()
+    expect(screen.getByText('6.31 %')).toBeTruthy()
   })
 })
