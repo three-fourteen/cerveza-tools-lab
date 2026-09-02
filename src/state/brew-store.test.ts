@@ -32,6 +32,30 @@ describe('brew store', () => {
     expect(store.getState().brew.expectedFinalGravity).toBe(1.014)
   })
 
+  it('preserves agent-applied dilution values when a human edits Expected FG', () => {
+    store.getState().updateBrew({ originalGravity: 1.058 })
+    store.getState().updateBrew(
+      { batchVolumeLiters: 23.2, originalGravity: 1.05 },
+      { source: 'agent', reason: 'Applied dilution.' },
+    )
+
+    const result = store.getState().updateBrew({ expectedFinalGravity: 1.014 })
+
+    expect(result).toEqual({ ok: true })
+    expect(store.getState()).toMatchObject({
+      syncVersion: 3,
+      brew: {
+        batchVolumeLiters: 23.2,
+        originalGravity: 1.05,
+        expectedFinalGravity: 1.014,
+      },
+      lastChange: {
+        source: 'human',
+        values: [{ field: 'expectedFinalGravity', previous: 1.011, next: 1.014 }],
+      },
+    })
+  })
+
   it('updates only the requested hop addition', () => {
     store.getState().updateHop('citra-60', { amountGrams: 18 })
 

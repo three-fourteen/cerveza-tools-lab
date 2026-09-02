@@ -109,4 +109,27 @@ describe('App', () => {
     expect(screen.getByText(/Applied to Current OG/)).toBeTruthy()
     expect(screen.getByText('6.31 %')).toBeTruthy()
   })
+
+  it('preserves agent-applied dilution values when editing Expected FG', () => {
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Apply to Current OG' }))
+    expect(useBrewStore.getState().brew.originalGravity).toBe(1.058)
+
+    act(() => {
+      useBrewStore.getState().updateBrew(
+        { batchVolumeLiters: 23.2, originalGravity: 1.05 },
+        { source: 'agent', reason: 'Applied dilution.' },
+      )
+    })
+
+    fireEvent.change(screen.getByLabelText('Expected FG'), { target: { value: '1.014' } })
+
+    expect(useBrewStore.getState().brew).toMatchObject({
+      batchVolumeLiters: 23.2,
+      originalGravity: 1.05,
+      expectedFinalGravity: 1.014,
+    })
+    expect((screen.getByLabelText('Current OG') as HTMLInputElement).value).toBe('1.05')
+  })
 })

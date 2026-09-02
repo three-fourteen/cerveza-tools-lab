@@ -100,7 +100,7 @@ export function createBrewStore(storage: StateStorage = fallbackStorage) {
 
           set((state) => ({
             brew: { ...state.brew, ...patch },
-            syncVersion: state.syncVersion + (options.source === 'agent' ? 1 : 0),
+            syncVersion: state.syncVersion + 1,
             lastChange: createChange(
               patch,
               (field) => currentBrew[field as keyof CurrentBrew],
@@ -125,7 +125,7 @@ export function createBrewStore(storage: StateStorage = fallbackStorage) {
                 candidate.id === id ? { ...candidate, ...patch } : candidate
               )),
             },
-            syncVersion: state.syncVersion + (options.source === 'agent' ? 1 : 0),
+            syncVersion: state.syncVersion + 1,
             lastChange: createChange(
               patch,
               (field) => hop[field as keyof typeof hop],
