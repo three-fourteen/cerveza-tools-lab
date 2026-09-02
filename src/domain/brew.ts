@@ -13,6 +13,7 @@ export type CurrentBrew = {
   name: string
   batchVolumeLiters: number
   targetOriginalGravity?: Gravity
+  originalGravity?: Gravity
   measuredOriginalGravity?: Gravity
   gravitySampleTemperatureC?: number
   hydrometerCalibrationTemperatureC?: number
@@ -27,7 +28,6 @@ export type CurrentBrew = {
 export type BrewPreset = {
   id: string
   name: string
-  description: string
   brew: CurrentBrew
 }
 
@@ -35,10 +35,9 @@ const presets: BrewPreset[] = [
   {
     id: 'american-ipa',
     name: 'American IPA',
-    description: 'Citrus-forward IPA for the WebMCP demo.',
     brew: {
       id: 'american-ipa', name: 'American IPA', batchVolumeLiters: 20,
-      targetOriginalGravity: 1.05, measuredOriginalGravity: 1.056,
+      targetOriginalGravity: 1.05, originalGravity: 1.05, measuredOriginalGravity: 1.056,
       gravitySampleTemperatureC: 28, hydrometerCalibrationTemperatureC: 20,
       expectedFinalGravity: 1.011, mashTemperatureC: 67, boilMinutes: 60,
       hops: [
@@ -48,20 +47,20 @@ const presets: BrewPreset[] = [
     },
   },
   {
-    id: 'czech-pilsner', name: 'Czech Pilsner', description: 'Clean lager with Saaz additions.',
-    brew: { id: 'czech-pilsner', name: 'Czech Pilsner', batchVolumeLiters: 20, targetOriginalGravity: 1.048, expectedFinalGravity: 1.01, mashTemperatureC: 66, boilMinutes: 90, hops: [{ id: 'saaz-60', name: 'Saaz', alphaAcidPercent: 3.5, amountGrams: 45, boilMinutes: 60 }] },
+    id: 'czech-pilsner', name: 'Czech Pilsner',
+    brew: { id: 'czech-pilsner', name: 'Czech Pilsner', batchVolumeLiters: 20, targetOriginalGravity: 1.048, originalGravity: 1.048, expectedFinalGravity: 1.01, mashTemperatureC: 66, boilMinutes: 90, hops: [{ id: 'saaz-60', name: 'Saaz', alphaAcidPercent: 3.5, amountGrams: 45, boilMinutes: 60 }] },
   },
   {
-    id: 'dry-stout', name: 'Dry Stout', description: 'Roasty and sessionable.',
-    brew: { id: 'dry-stout', name: 'Dry Stout', batchVolumeLiters: 20, targetOriginalGravity: 1.044, expectedFinalGravity: 1.01, mashTemperatureC: 67, boilMinutes: 60, hops: [{ id: 'east-kent-golding-60', name: 'East Kent Golding', alphaAcidPercent: 5, amountGrams: 35, boilMinutes: 60 }] },
+    id: 'dry-stout', name: 'Dry Stout',
+    brew: { id: 'dry-stout', name: 'Dry Stout', batchVolumeLiters: 20, targetOriginalGravity: 1.044, originalGravity: 1.044, expectedFinalGravity: 1.01, mashTemperatureC: 67, boilMinutes: 60, hops: [{ id: 'east-kent-golding-60', name: 'East Kent Golding', alphaAcidPercent: 5, amountGrams: 35, boilMinutes: 60 }] },
   },
   {
-    id: 'belgian-wit', name: 'Belgian Wit', description: 'Light, spiced wheat ale.',
-    brew: { id: 'belgian-wit', name: 'Belgian Wit', batchVolumeLiters: 20, targetOriginalGravity: 1.046, expectedFinalGravity: 1.009, mashTemperatureC: 66, boilMinutes: 60, hops: [{ id: 'hallertau-60', name: 'Hallertau Mittelfrüh', alphaAcidPercent: 4, amountGrams: 25, boilMinutes: 60 }] },
+    id: 'belgian-wit', name: 'Belgian Wit',
+    brew: { id: 'belgian-wit', name: 'Belgian Wit', batchVolumeLiters: 20, targetOriginalGravity: 1.046, originalGravity: 1.046, expectedFinalGravity: 1.009, mashTemperatureC: 66, boilMinutes: 60, hops: [{ id: 'hallertau-60', name: 'Hallertau Mittelfrüh', alphaAcidPercent: 4, amountGrams: 25, boilMinutes: 60 }] },
   },
   {
-    id: 'helles', name: 'Munich Helles', description: 'Soft, balanced pale lager.',
-    brew: { id: 'helles', name: 'Munich Helles', batchVolumeLiters: 20, targetOriginalGravity: 1.048, expectedFinalGravity: 1.01, mashTemperatureC: 66, boilMinutes: 60, hops: [{ id: 'hallertau-60', name: 'Hallertau Mittelfrüh', alphaAcidPercent: 4, amountGrams: 28, boilMinutes: 60 }] },
+    id: 'helles', name: 'Munich Helles',
+    brew: { id: 'helles', name: 'Munich Helles', batchVolumeLiters: 20, targetOriginalGravity: 1.048, originalGravity: 1.048, expectedFinalGravity: 1.01, mashTemperatureC: 66, boilMinutes: 60, hops: [{ id: 'hallertau-60', name: 'Hallertau Mittelfrüh', alphaAcidPercent: 4, amountGrams: 28, boilMinutes: 60 }] },
   },
 ]
 

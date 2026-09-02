@@ -1,80 +1,82 @@
 import { useEffect, useMemo, useState } from 'react'
 import { registerBrewingCalculatorTools } from 'cerveza-tools/webmcp'
-import { brewPresets } from './domain/brew'
 import { calculateBrewMetrics } from './domain/metrics'
+import { AgentUpdate } from './features/brew/components/AgentUpdate'
+import { CurrentBrewCard } from './features/brew/components/CurrentBrewCard'
+import { HopSchedule } from './features/brew/components/HopSchedule'
+import { RecipePicker } from './features/brew/components/RecipePicker'
 import { useBrewStore } from './state/brew-store'
-import { registerLabTools } from './webmcp/lab-tools'
+import { registerLabTools, unregisterLabTools } from './webmcp/lab-tools'
 import './app.css'
-
-function number(value: string) {
-  return value === '' ? undefined : Number(value)
-}
-
-function Metric({ label, value, unit }: { label: string; value?: number; unit?: string }) {
-  return <div className="metric"><span>{label}</span><strong>{value === undefined ? '—' : value}{value !== undefined && unit ? ` ${unit}` : ''}</strong></div>
-}
 
 export default function App() {
   const brew = useBrewStore((state) => state.brew)
+  const syncVersion = useBrewStore((state) => state.syncVersion)
+  const lastChange = useBrewStore((state) => state.lastChange)
   const updateBrew = useBrewStore((state) => state.updateBrew)
   const updateHop = useBrewStore((state) => state.updateHop)
   const loadPreset = useBrewStore((state) => state.loadPreset)
+  const clearLastChange = useBrewStore((state) => state.clearLastChange)
   const [selectedPreset, setSelectedPreset] = useState('american-ipa')
   const [agentToolsAvailable, setAgentToolsAvailable] = useState(false)
   const metrics = useMemo(() => calculateBrewMetrics(brew), [brew])
 
   useEffect(() => {
     let active = true
-    let unregister = () => {}
-    void Promise.allSettled([registerLabTools(), registerBrewingCalculatorTools({ calculators: 'all', locale: 'en' })]).then(([labResult, calculatorResult]) => {
+    let unregister = () => { unregisterLabTools() }
+    void Promise.allSettled([
+      registerLabTools(),
+      registerBrewingCalculatorTools({ calculators: 'all', locale: 'en' }),
+    ]).then(([labResult, calculatorResult]) => {
       const lab = labResult.status === 'fulfilled' ? labResult.value : undefined
-      const calculators = calculatorResult.status === 'fulfilled' ? calculatorResult.value : undefined
-      unregister = () => { lab?.unregister(); calculators?.unregister() }
-      if (active) setAgentToolsAvailable(Boolean(lab?.supported || calculators?.supported))
+      const calculators = calculatorResult.status === 'fulfilled'
+        ? calculatorResult.value
+        : undefined
+      unregister = () => {
+        lab?.unregister()
+        calculators?.unregister()
+      }
+      if (!active) {
+        unregister()
+        return
+      }
+      setAgentToolsAvailable(Boolean(lab?.supported && calculators?.supported))
     })
-    return () => { active = false; unregister() }
+    return () => {
+      active = false
+      unregister()
+    }
   }, [])
 
-  useEffect(() => {
-    const syncExternalBrewUpdate = () => { void useBrewStore.persist.rehydrate() }
-    window.addEventListener('current-brew-updated', syncExternalBrewUpdate)
-    return () => window.removeEventListener('current-brew-updated', syncExternalBrewUpdate)
-  }, [])
+  return (
+    <main className="min-h-screen bg-stone-100 text-green-950">
+      <div className="mx-auto w-full max-w-5xl px-5 pt-10 pb-16">
+        <header className="flex items-center justify-between gap-6 max-sm:flex-col max-sm:items-stretch">
+          <div>
+            <p className="mb-1.5 text-xs font-extrabold tracking-[0.13em] text-amber-900">
+              WEBMCP BREWING WORKSPACE
+            </p>
+            <h1 className="text-[clamp(2rem,5vw,3.4rem)] font-bold">Cerveza Tools Lab</h1>
+          </div>
+          <span className="rounded-full border border-green-700/40 px-2.5 py-2 text-sm text-green-800">
+            {agentToolsAvailable ? 'WebMCP: Available' : 'Agent tools unavailable in this browser'}
+          </span>
+        </header>
 
-  return <main className="workspace">
-    <header>
-      <div><p className="eyebrow">WEBMCP BREWING WORKSPACE</p><h1>Cerveza Tools Lab</h1></div>
-      <span className="status">{agentToolsAvailable ? 'WebMCP: Available' : 'Agent tools unavailable in this browser'}</span>
-    </header>
-
-    <section className="recipe-picker" aria-label="Demo recipes">
-      <div><h2>Demo recipes</h2><p>Choose a starting point, then load it into the shared brew.</p></div>
-      <label>Demo recipe<select value={selectedPreset} onChange={(event) => setSelectedPreset(event.target.value)}>
-        {brewPresets.map((preset) => <option key={preset.id} value={preset.id}>{preset.name}</option>)}
-      </select></label>
-      <button onClick={() => loadPreset(selectedPreset)}>Load into Current Brew</button>
-    </section>
-
-    <section className="brew-card" aria-labelledby="current-brew-title">
-      <div className="section-heading"><div><p className="eyebrow">CURRENT BREW</p><h2 id="current-brew-title">{brew.name}</h2></div><span>Saved locally</span></div>
-      <div className="fields">
-        <label>Batch volume (L)<input type="number" value={brew.batchVolumeLiters} onChange={(event) => updateBrew({ batchVolumeLiters: Number(event.target.value) })} /></label>
-        <label>Target OG<input type="number" step="0.001" value={brew.targetOriginalGravity ?? ''} onChange={(event) => updateBrew({ targetOriginalGravity: number(event.target.value) })} /></label>
-        <label>Measured OG<input type="number" step="0.001" value={brew.measuredOriginalGravity ?? ''} onChange={(event) => updateBrew({ measuredOriginalGravity: number(event.target.value) })} /></label>
-        <label>Expected FG<input type="number" step="0.001" value={brew.expectedFinalGravity ?? ''} onChange={(event) => updateBrew({ expectedFinalGravity: number(event.target.value) })} /></label>
+        <AgentUpdate change={lastChange} onDismiss={clearLastChange} />
+        <RecipePicker
+          selectedPreset={selectedPreset}
+          onSelect={setSelectedPreset}
+          onLoad={() => loadPreset(selectedPreset)}
+        />
+        <CurrentBrewCard
+          brew={brew}
+          metrics={metrics}
+          syncVersion={syncVersion}
+          updateBrew={updateBrew}
+        />
+        <HopSchedule hops={brew.hops} syncVersion={syncVersion} updateHop={updateHop} />
       </div>
-      <div className="metrics" aria-label="Calculated metrics">
-        <Metric label="Corrected OG" value={metrics.correctedOriginalGravity} />
-        <Metric label="ABV" value={metrics.expectedAbvPercent} unit="%" />
-        <Metric label="IBU" value={metrics.estimatedIbu} />
-      </div>
-    </section>
-
-    <section className="hops" aria-labelledby="hops-title"><h2 id="hops-title">Hop schedule</h2>
-      {brew.hops.map((hop) => <div className="hop" key={hop.id}>
-        <strong>{hop.name}</strong><span>{hop.alphaAcidPercent}% AA · {hop.boilMinutes} min</span>
-        <label>{hop.name} amount (g)<input type="number" value={hop.amountGrams} onChange={(event) => updateHop(hop.id, { amountGrams: Number(event.target.value) })} /></label>
-      </div>)}
-    </section>
-  </main>
+    </main>
+  )
 }
