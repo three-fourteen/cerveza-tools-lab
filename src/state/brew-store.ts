@@ -158,6 +158,8 @@ export function createBrewStore(storage: StateStorage = fallbackStorage) {
             && typeof persistedState === 'object'
             ? persistedState as Record<string, unknown>
             : undefined
+          if (currentState.syncVersion > 0) return currentState
+
           return {
             ...currentState,
             brew: parseCurrentBrew(persistedRecord?.brew) ?? currentState.brew,

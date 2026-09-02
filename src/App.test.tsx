@@ -2,8 +2,13 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createAmericanIpa } from './domain/brew'
 import { useBrewStore } from './state/brew-store'
-import { unregisterLabTools } from './webmcp/lab-tools'
+import { registerLabTools, unregisterLabTools } from './webmcp/lab-tools'
 import App from './App'
+
+interface RegisteredTool {
+  name: string
+  execute: (input: unknown) => Promise<unknown>
+}
 
 describe('App', () => {
   beforeEach(() => {
@@ -130,6 +135,35 @@ describe('App', () => {
       originalGravity: 1.05,
       expectedFinalGravity: 1.014,
     })
+    expect((screen.getByLabelText('Current OG') as HTMLInputElement).value).toBe('1.05')
+  })
+
+  it('preserves WebMCP-applied dilution values after loading American IPA and editing Expected FG', async () => {
+    const tools: RegisteredTool[] = []
+    await registerLabTools({ registerTool: (tool) => { tools.push(tool) } })
+    const updateCurrentBrew = tools.find((tool) => tool.name === 'update_current_brew')
+    if (!updateCurrentBrew) throw new Error('Missing update_current_brew tool.')
+
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Load into Current Brew' }))
+    fireEvent.change(screen.getByLabelText('Current OG'), { target: { value: '1.058' } })
+
+    await act(async () => {
+      await updateCurrentBrew.execute({
+        patch: { batchVolumeLiters: 23.2, originalGravity: 1.05 },
+        reason: 'Dilute from 1.058 to target 1.050.',
+      })
+    })
+
+    fireEvent.change(screen.getByLabelText('Expected FG'), { target: { value: '1.014' } })
+
+    expect(useBrewStore.getState().brew).toMatchObject({
+      batchVolumeLiters: 23.2,
+      originalGravity: 1.05,
+      expectedFinalGravity: 1.014,
+    })
+    expect((screen.getByLabelText('Batch volume (L)') as HTMLInputElement).value).toBe('23.2')
     expect((screen.getByLabelText('Current OG') as HTMLInputElement).value).toBe('1.05')
   })
 })

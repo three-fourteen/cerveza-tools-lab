@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { createAmericanIpa } from '../domain/brew'
+import { createAmericanIpa, type CurrentBrew } from '../domain/brew'
 import { createBrewStore } from './brew-store'
 
 function createMemoryStorage() {
@@ -10,6 +10,13 @@ function createMemoryStorage() {
     setItem: (name: string, value: string) => { values.set(name, value) },
     removeItem: (name: string) => { values.delete(name) },
   }
+}
+
+function persistedBrew(brew: CurrentBrew) {
+  return JSON.stringify({
+    state: { brew, temperatureUnit: 'celsius' },
+    version: 0,
+  })
 }
 
 describe('brew store', () => {
@@ -53,6 +60,34 @@ describe('brew store', () => {
         source: 'human',
         values: [{ field: 'expectedFinalGravity', previous: 1.011, next: 1.014 }],
       },
+    })
+  })
+
+  it('does not rehydrate stale persisted brew over WebMCP and human edits', async () => {
+    const staleBrew = createAmericanIpa()
+    staleBrew.originalGravity = 1.058
+    let resolveHydration: (value: string) => void = () => {}
+    const hydration = new Promise<string>((resolve) => { resolveHydration = resolve })
+    const delayedStorage = {
+      getItem: () => hydration,
+      setItem: () => {},
+      removeItem: () => {},
+    }
+    const delayedStore = createBrewStore(delayedStorage)
+
+    delayedStore.getState().loadPreset('american-ipa')
+    delayedStore.getState().updateBrew(
+      { batchVolumeLiters: 23.2, originalGravity: 1.05 },
+      { source: 'agent', reason: 'Applied dilution.' },
+    )
+    delayedStore.getState().updateBrew({ expectedFinalGravity: 1.014 })
+    resolveHydration(persistedBrew(staleBrew))
+    await delayedStore.persist.rehydrate()
+
+    expect(delayedStore.getState().brew).toMatchObject({
+      batchVolumeLiters: 23.2,
+      originalGravity: 1.05,
+      expectedFinalGravity: 1.014,
     })
   })
 
